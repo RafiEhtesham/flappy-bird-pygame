@@ -28,6 +28,7 @@ class Game:
         self.bird = Bird(self.scale_factor)
         self.is_enter_pressed = False
         self.is_game_started = True
+        self.is_restarted = False
 
         self.pipes = []
         self.pipe_generate_counter = 0
@@ -62,11 +63,13 @@ class Game:
                     if event.key == pg.K_RETURN:
                         self.is_enter_pressed = True
                         self.bird.update_on = True
-                    if event.key == pg.K_SPACE and self.is_enter_pressed: 
+                    if event.key == pg.K_SPACE and (self.is_enter_pressed or self.is_restarted): 
                         self.bird.flap(dt)
+
                 if event.type == pg.MOUSEBUTTONUP and not self.is_game_started:
                     if self.restart_text_rect.collidepoint(pg.mouse.get_pos()):
                         self.restartGame()
+                        
                      
 
             self.updateEverything(dt)
@@ -81,7 +84,9 @@ class Game:
         self.score_text = self.font.render("Score: " + str(self.score), True, (255, 255, 255))
         self.is_enter_pressed = False
         self.is_game_started = True
+        self.is_restarted = True
         self.bird.resetPosition()
+        self.bird.update_on = True
         self.pipes = []
         self.pipe_generate_counter = 0
 
@@ -93,12 +98,14 @@ class Game:
                 self.bird.update_on = False
                 self.is_enter_pressed = False
                 self.is_game_started = False
+                self.is_restarted = False
             if self.bird.rect.colliderect(self.pipes[0].rect_up) or self.bird.rect.colliderect(self.pipes[0].rect_down):
                 self.is_enter_pressed = False
                 self.is_game_started = False
+                self.is_restarted = False
 
     def updateEverything(self, dt):
-        if self.is_enter_pressed:
+        if self.is_enter_pressed or self.is_restarted:
             
             # updating ground
             self.ground1_rect.x -= int(self.move_speed * dt)
@@ -109,6 +116,23 @@ class Game:
                 self.ground1_rect.x = self.ground2_rect.right
             if self.ground2_rect.right < 0:
                 self.ground2_rect.x = self.ground1_rect.right
+
+            # updating bg
+            self.bg_green1_rect.x -= int(self.move_speed * dt * 0.8)
+            self.bg_green2_rect.x -= int(self.move_speed * dt * 0.8)
+            self.bg_buildings1_rect.x -= int(self.move_speed * dt * 0.6)
+            self.bg_buildings2_rect.x -= int(self.move_speed * dt * 0.6)
+
+            # looping bg
+            if self.bg_green1_rect.right < 0:
+                self.bg_green1_rect.x = self.bg_green2_rect.right
+            if self.bg_green2_rect.right < 0:
+                self.bg_green2_rect.x = self.bg_green1_rect.right
+            
+            if self.bg_buildings1_rect.right < 0:
+                self.bg_buildings1_rect.x = self.bg_buildings2_rect.right
+            if self.bg_buildings2_rect.right < 0:
+                self.bg_buildings2_rect.x = self.bg_buildings1_rect.right
 
             # generating pipes
             if self.pipe_generate_counter > 70:
@@ -129,7 +153,14 @@ class Game:
         self.bird.update(dt)
             
     def drawEverything(self):
-        self.win.blit(self.bg_img, (0, -300))
+        self.win.blit(self.bg_blue_img, (0, 0))
+        
+        self.win.blit(self.bg_buildings1_img, (self.bg_buildings1_rect.x, self.bg_buildings1_rect.y))
+        self.win.blit(self.bg_buildings2_img, (self.bg_buildings2_rect.x, self.bg_buildings2_rect.y))
+
+        self.win.blit(self.bg_green1_img, (self.bg_green1_rect.x, self.bg_green1_rect.y))
+        self.win.blit(self.bg_green2_img, (self.bg_green2_rect.x, self.bg_green2_rect.y))
+
         for pipe in self.pipes:
             pipe.drawPipe(self.win)
 
@@ -143,7 +174,19 @@ class Game:
 
     def setUpBgAndGround(self):
         # loading images for bg and ground 
-        self.bg_img = pg.transform.scale_by(pg.image.load("assets/bg.png").convert(), self.scale_factor)
+        self.bg_blue_img = pg.transform.scale_by(pg.image.load("assets/bg-blue.png").convert(), self.scale_factor)
+        
+        self.bg_green1_img = pg.transform.scale_by(pg.image.load("assets/bg-green-1.png").convert_alpha(), self.scale_factor)
+        self.bg_green2_img = pg.transform.scale_by(pg.image.load("assets/bg-green-2.png").convert_alpha(), self.scale_factor)
+
+        self.bg_green1_rect = self.bg_green1_img.get_rect()
+        self.bg_green2_rect = self.bg_green2_img.get_rect()
+
+        self.bg_buildings1_img = pg.transform.scale_by(pg.image.load("assets/bg-buildings-1.png").convert_alpha(), self.scale_factor)
+        self.bg_buildings2_img = pg.transform.scale_by(pg.image.load("assets/bg-buildings-2.png").convert_alpha(), self.scale_factor)
+
+        self.bg_buildings1_rect = self.bg_buildings1_img.get_rect()
+        self.bg_buildings2_rect = self.bg_buildings2_img.get_rect()
 
         self.ground1_img = pg.transform.scale_by(pg.image.load("assets/ground.png").convert(), self.scale_factor)
         self.ground2_img = pg.transform.scale_by(pg.image.load("assets/ground.png").convert(), self.scale_factor)
@@ -154,5 +197,13 @@ class Game:
         self.ground1_rect.x = 0
         self.ground2_rect.x = self.ground1_rect.right
         self.ground1_rect.y = self.ground2_rect.y = self.height - self.ground1_rect.height
+
+        self.bg_green1_rect.x = 0
+        self.bg_green2_rect.x = self.bg_green1_rect.right
+        self.bg_green1_rect.y = self.bg_green2_rect.y = self.height - self.bg_green1_rect.height
+
+        self.bg_buildings1_rect.x = 0
+        self.bg_buildings2_rect.x = self.bg_buildings1_rect.right
+        self.bg_buildings1_rect.y = self.bg_buildings2_rect.y = self.height - self.bg_buildings1_rect.height
 
 game = Game()
